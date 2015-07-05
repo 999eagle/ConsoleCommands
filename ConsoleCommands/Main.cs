@@ -21,8 +21,10 @@ namespace ConsoleCommands
         public override string Description { get { return "This plugin adds some console commands."; } }
         public override Version Version { get { return new Version(1, 0); } }
 
-        private bool godmode, range, buildgrid;
+        private bool godmode, buildgrid;
         private Texture2D gridTexture;
+
+        private string[] allItemNames = null;
 
         public override bool Initialize()
         {
@@ -32,6 +34,7 @@ namespace ConsoleCommands
             Events.TerrariaMainEvents.PreDrawInterface.Register(this, OnPreDrawInterface, 1);
             CC.AddCommnd(new List<string>() { "tgm", "godmode" }, "Toggles godmode for the player.", OnGodmodeCommand);
             CC.AddCommnd(new List<string> { "grid" }, "Toggles building grid.", OnGridCommand);
+            CC.AddCommnd(new List<string> { "give" }, "Gives the player an item.", OnGiveCommand);
             return true;
         }
 
@@ -97,14 +100,87 @@ namespace ConsoleCommands
         void OnGodmodeCommand(ConsoleCommandArgs args)
         {
             godmode = !godmode;
-            Console.PrintConsole("Godmode toggled", ConsoleMessageType.Normal);
+            Console.PrintConsole("Godmode toggled", ConsoleMessageType.About);
             args.Handled = true;
         }
 
         void OnGridCommand(ConsoleCommandArgs args)
         {
             buildgrid = !buildgrid;
-            Console.PrintConsole("Building grid toggled", ConsoleMessageType.Normal);
+            Console.PrintConsole("Building grid toggled", ConsoleMessageType.About);
+            args.Handled = true;
+        }
+
+        int GetItemId(string itemNameOrId)
+        {
+            if (allItemNames == null)
+            {
+                allItemNames = Terraria.GetMainField<string[]>("itemName");
+            }
+            var itemId = -1;
+            if (Int32.TryParse(itemNameOrId, out itemId))
+            {
+                return itemId;
+            }
+            else
+            {
+                for (int j = 0; j < allItemNames.Length; j++)
+                {
+                    if (allItemNames[j].ToLower() == itemNameOrId.ToLower())
+                    {
+                        return j;
+                    }
+                }
+            }
+            return -1;
+        }
+
+        void OnGiveCommand(ConsoleCommandArgs args)
+        {
+            if (args.Arguments.Count > 1)
+            {
+                var allItemNames = Terraria.GetMainField<string[]>("itemName");
+                var itemIds = new List<int>();
+                var player = DetoxPlayers.LocalPlayer;
+                int successes = 0;
+                for (int i = 1; i < args.Arguments.Count; i += 2)
+                {
+                    var itemId = GetItemId(args.Arguments[i]);
+                    var count = -1;
+                    if (itemId != -1)
+                    {
+                        if (Int32.TryParse(args.Arguments[i + 1], out count))
+                        {
+                            for (int j = 0; j < count; j++)
+                            {
+                                player.Invoke("PutItemInInventory", itemId, -1);
+                            }
+                            successes++;
+                        }
+                        else
+                        {
+                            Console.PrintConsole(args.Arguments[i + 1] + " is not a valid integer!", ConsoleMessageType.Warning);
+                        }
+                    }
+                    else
+                    {
+                        Console.PrintConsole("Item \"" + args.Arguments[i] + "\" not found!", ConsoleMessageType.Warning);
+                    }
+                }
+                if (successes > 0)
+                {
+                    Console.PrintConsole("Put " + successes + " item" + (successes > 1 ? "s" : "") + "into your inventory!", ConsoleMessageType.About);
+                }
+                else
+                {
+                    Console.PrintConsole("Couldn't put any item into your inventory.", ConsoleMessageType.Warning);
+                }
+            }
+            else
+            {
+                Console.PrintConsole("No item specified!", ConsoleMessageType.Error);
+                Console.PrintConsole("Usage: /give <item1> <count1> (<item2> <count2> ...)", ConsoleMessageType.Normal);
+            }
             args.Handled = true;
         }
     }
