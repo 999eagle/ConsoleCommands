@@ -23,6 +23,7 @@ namespace ConsoleCommands
 
         private bool godmode, buildgrid;
         private Texture2D gridTexture;
+        private Color gridColor = new Color(0.5f, 0.5f, 0.5f, 0.1f);
 
         private string[] allItemNames = null;
 
@@ -35,6 +36,7 @@ namespace ConsoleCommands
             CC.AddCommnd(new List<string>() { "tgm", "godmode" }, "Toggles godmode for the player.", OnGodmodeCommand);
             CC.AddCommnd(new List<string> { "grid" }, "Toggles building grid.", OnGridCommand);
             CC.AddCommnd(new List<string> { "give" }, "Gives the player an item.", OnGiveCommand);
+            CC.AddCommnd(new List<string> { "time" }, "Sets the current time.", OnTimeCommand);
             return true;
         }
 
@@ -78,7 +80,7 @@ namespace ConsoleCommands
             for (var w = 0; w <= width + 1; w++)
             {
                 for (var j = 0; j <= height + 1; j++)
-                    Terraria.MainSpriteBatch.Draw(gridTexture, new Vector2(w * gridTexture.Width + posX, j * gridTexture.Height + posY), new Rectangle(0, 0, gridTexture.Width, gridTexture.Height), new Color(100, 100, 100, 15), 0f, default(Vector2), 1f, SpriteEffects.None, 0f);
+                    Terraria.MainSpriteBatch.Draw(gridTexture, new Vector2(w * gridTexture.Width + posX, j * gridTexture.Height + posY), new Rectangle(0, 0, gridTexture.Width, gridTexture.Height), gridColor, 0f, default(Vector2), 1f, SpriteEffects.None, 0f);
             }
         }
 
@@ -182,6 +184,30 @@ namespace ConsoleCommands
                 Console.PrintConsole("Usage: /give <item1> <count1> (<item2> <count2> ...)", ConsoleMessageType.Normal);
             }
             args.Handled = true;
+        }
+
+        void OnTimeCommand(ConsoleCommandArgs args)
+        {
+            args.Handled = true;
+            if (args.Arguments.Count == 2)
+            {
+                double time;
+                if (Double.TryParse(args.Arguments[1], out time))
+                {
+                    Terraria.SetMainField("time", time);
+                    Console.PrintConsole("Time set!", ConsoleMessageType.About);
+                }
+                else
+                {
+                    Console.PrintConsole("Invalid time specified!", ConsoleMessageType.Error);
+                    Console.PrintConsole("Usage: /time <time>", ConsoleMessageType.Normal);
+                }
+            }
+            else
+            {
+                Console.PrintConsole("No time specified!", ConsoleMessageType.Error);
+                Console.PrintConsole("Usage: /time <time>", ConsoleMessageType.Normal);
+            }
         }
     }
 }
